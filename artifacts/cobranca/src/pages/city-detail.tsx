@@ -31,6 +31,7 @@ import {
   Wallet,
   Users,
   CalendarDays,
+  MessageCircle,
 } from "lucide-react";
 
 import { useMonth } from "@/hooks/use-month";
@@ -48,6 +49,11 @@ import { PayerForm } from "@/components/dialogs/payer-form";
 import { PaymentForm } from "@/components/dialogs/payment-form";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 import { formatCurrency, formatMonthLabel, formatDateTime } from "@/lib/format";
+import {
+  buildOverdueMessage,
+  buildWhatsAppUrl,
+  extractPhoneDigits,
+} from "@/lib/whatsapp";
 
 const STATUS_LABEL: Record<PayerWithStatus["status"], string> = {
   paid: "Pago",
@@ -404,6 +410,47 @@ export default function CityDetailPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {payer.status === "overdue" && (() => {
+                      const phone = extractPhoneDigits(payer.contact);
+                      const message = buildOverdueMessage({
+                        payerName: payer.name,
+                        cityName: city.name,
+                        amount: payer.monthlyAmount,
+                        referenceMonth,
+                        dueDay: city.dueDay,
+                      });
+                      const url = phone ? buildWhatsAppUrl(phone, message) : null;
+                      return (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950"
+                          asChild={!!url}
+                          disabled={!url}
+                          onClick={
+                            url
+                              ? undefined
+                              : () =>
+                                  toast.error(
+                                    "Adicione um telefone no contato deste pagante para enviar o lembrete."
+                                  )
+                          }
+                          aria-label="Enviar lembrete pelo WhatsApp"
+                        >
+                          {url ? (
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Lembrar no WhatsApp
+                            </a>
+                          ) : (
+                            <>
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Lembrar no WhatsApp
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
                     {payer.status === "paid" ? (
                       <Button
                         variant="outline"
