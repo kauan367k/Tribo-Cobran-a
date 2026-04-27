@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -21,6 +21,8 @@ import {
   ChevronRight,
   Activity,
   CalendarDays,
+  Search,
+  X,
 } from "lucide-react";
 
 import { useMonth } from "@/hooks/use-month";
@@ -28,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { CityForm } from "@/components/dialogs/city-form";
 import { formatCurrency, formatMonthLabel, formatDateTime } from "@/lib/format";
 
@@ -128,6 +131,7 @@ export default function Dashboard() {
   const referenceMonth = useMonth((s) => s.referenceMonth);
   const queryClient = useQueryClient();
   const [openNewCity, setOpenNewCity] = useState(false);
+  const [search, setSearch] = useState("");
 
   const dashboardQuery = useGetDashboard({ referenceMonth });
   const citiesQuery = useListCities({ referenceMonth });
@@ -137,6 +141,14 @@ export default function Dashboard() {
   const summary = dashboardQuery.data;
   const cities = citiesQuery.data ?? [];
   const activity = activityQuery.data ?? [];
+
+  const normalize = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const filteredCities = useMemo(() => {
+    const q = normalize(search.trim());
+    if (!q) return cities;
+    return cities.filter((c) => normalize(c.name).includes(q));
+  }, [cities, search]);
 
   const handleCreate = (data: { name: string; dueDay: number; notes?: string | null }) => {
     createCity.mutate(
@@ -209,8 +221,29 @@ export default function Dashboard() {
       </div>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold">Cidades</h2>
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar cidade..."
+              className="pl-9 pr-9"
+              data-testid="input-search-cities"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Limpar busca"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         {citiesQuery.isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -235,10 +268,19 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {cities.map((city) => (
-              <CityCard key={city.id} city={city} />
-            ))}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredCities.map((city) => (
+                <CityCard key={city.id} city={city} />
+              ))}
+            </div>
+            {search && filteredCities.length === 0 && (
+              <Card>
+                <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                  Nenhuma cidade encontrada para "{search}".
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </section>

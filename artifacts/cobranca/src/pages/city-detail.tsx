@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -33,6 +33,8 @@ import {
   CalendarDays,
   MessageCircle,
   FileDown,
+  Search,
+  X,
 } from "lucide-react";
 
 import { useMonth } from "@/hooks/use-month";
@@ -45,6 +47,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { CityForm } from "@/components/dialogs/city-form";
 import { PayerForm } from "@/components/dialogs/payer-form";
 import { PaymentForm } from "@/components/dialogs/payment-form";
@@ -111,6 +114,7 @@ export default function CityDetailPage() {
   const [editPayer, setEditPayer] = useState<PayerWithStatus | null>(null);
   const [confirmDeletePayer, setConfirmDeletePayer] = useState<PayerWithStatus | null>(null);
   const [paymentFor, setPaymentFor] = useState<PayerWithStatus | null>(null);
+  const [payerSearch, setPayerSearch] = useState("");
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetCityQueryKey(cityId) });
@@ -297,6 +301,17 @@ export default function CityDetailPage() {
 
   const { city, payers } = cityQuery.data;
 
+  const normalize = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const filteredPayers = useMemo(() => {
+    const q = normalize(payerSearch.trim());
+    if (!q) return payers;
+    return payers.filter((p) => {
+      const haystack = `${p.name} ${p.contact ?? ""} ${p.notes ?? ""}`;
+      return normalize(haystack).includes(q);
+    });
+  }, [payers, payerSearch]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -375,24 +390,51 @@ export default function CityDetailPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
             Pagantes
           </CardTitle>
-          <Button onClick={() => setNewPayerOpen(true)} data-testid="button-new-payer">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Pagante
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                value={payerSearch}
+                onChange={(e) => setPayerSearch(e.target.value)}
+                placeholder="Buscar pagante..."
+                className="pl-9 pr-9"
+                data-testid="input-search-payers"
+              />
+              {payerSearch && (
+                <button
+                  type="button"
+                  onClick={() => setPayerSearch("")}
+                  aria-label="Limpar busca"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <Button onClick={() => setNewPayerOpen(true)} data-testid="button-new-payer">
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Pagante
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {payers.length === 0 ? (
             <div className="px-6 py-10 text-center text-sm text-muted-foreground">
               Nenhum pagante cadastrado nesta cidade.
             </div>
+          ) : filteredPayers.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+              Nenhum pagante encontrado para "{payerSearch}".
+            </div>
           ) : (
             <ul className="divide-y">
-              {payers.map((payer) => (
+              {filteredPayers.map((payer) => (
                 <li key={payer.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
