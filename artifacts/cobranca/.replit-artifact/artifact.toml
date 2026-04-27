@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Cobrança Mensal por Cidades"
+version = "1.0.0"
+id = "artifacts/cobranca"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18444
+
+[services.development]
+run = "pnpm --filter @workspace/cobranca run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/cobranca", "run", "build" ]
+publicDir = "artifacts/cobranca/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18444"
+BASE_PATH = "/"

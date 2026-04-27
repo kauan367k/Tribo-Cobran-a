@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API de Cobrança Mensal por Cidades
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+    description: Operações de saúde
+  - name: dashboard
+    description: Resumo geral
+  - name: cities
+    description: Gerenciamento de cidades
+  - name: payers
+    description: Gerenciamento de pagantes
+  - name: payments
+    description: Pagamentos mensais
 paths:
   /healthz:
     get:
@@ -24,6 +32,274 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Resumo geral do mês
+      parameters:
+        - in: query
+          name: referenceMonth
+          required: false
+          description: Mês de referência no formato YYYY-MM. Padrão é o mês atual.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+      responses:
+        "200":
+          description: Resumo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /cities:
+    get:
+      operationId: listCities
+      tags: [cities]
+      summary: Lista cidades com resumo do mês
+      parameters:
+        - in: query
+          name: referenceMonth
+          required: false
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+      responses:
+        "200":
+          description: Lista de cidades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CityWithSummary"
+    post:
+      operationId: createCity
+      tags: [cities]
+      summary: Cadastra cidade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCityBody"
+      responses:
+        "201":
+          description: Cidade criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/City"
+
+  /cities/{cityId}:
+    get:
+      operationId: getCity
+      tags: [cities]
+      summary: Detalhe de uma cidade com pagantes
+      parameters:
+        - in: path
+          name: cityId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: referenceMonth
+          required: false
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+      responses:
+        "200":
+          description: Detalhe da cidade
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CityDetail"
+    patch:
+      operationId: updateCity
+      tags: [cities]
+      summary: Edita uma cidade
+      parameters:
+        - in: path
+          name: cityId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCityBody"
+      responses:
+        "200":
+          description: Cidade atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/City"
+    delete:
+      operationId: deleteCity
+      tags: [cities]
+      summary: Remove uma cidade
+      parameters:
+        - in: path
+          name: cityId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Cidade removida
+
+  /cities/{cityId}/payers:
+    post:
+      operationId: createPayer
+      tags: [payers]
+      summary: Cadastra um pagante na cidade
+      parameters:
+        - in: path
+          name: cityId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePayerBody"
+      responses:
+        "201":
+          description: Pagante criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payer"
+
+  /payers/{payerId}:
+    patch:
+      operationId: updatePayer
+      tags: [payers]
+      summary: Edita um pagante
+      parameters:
+        - in: path
+          name: payerId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePayerBody"
+      responses:
+        "200":
+          description: Pagante atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payer"
+    delete:
+      operationId: deletePayer
+      tags: [payers]
+      summary: Remove um pagante
+      parameters:
+        - in: path
+          name: payerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Pagante removido
+
+  /payers/{payerId}/payments:
+    get:
+      operationId: listPayerPayments
+      tags: [payments]
+      summary: Histórico de pagamentos de um pagante
+      parameters:
+        - in: path
+          name: payerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de pagamentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+    post:
+      operationId: registerPayment
+      tags: [payments]
+      summary: Registra pagamento de um pagante para um mês
+      parameters:
+        - in: path
+          name: payerId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterPaymentBody"
+      responses:
+        "201":
+          description: Pagamento registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/{paymentId}:
+    delete:
+      operationId: deletePayment
+      tags: [payments]
+      summary: Cancela um pagamento registrado
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Pagamento removido
+
+  /activity:
+    get:
+      operationId: listRecentActivity
+      tags: [dashboard]
+      summary: Atividade recente (últimos pagamentos registrados)
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: Lista de eventos recentes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEntry"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +307,287 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    City:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        dueDay:
+          type: integer
+          minimum: 1
+          maximum: 28
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, dueDay, createdAt]
+
+    CityWithSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        dueDay:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        payersCount:
+          type: integer
+        expectedTotal:
+          type: number
+        receivedTotal:
+          type: number
+        pendingTotal:
+          type: number
+        overdueTotal:
+          type: number
+      required:
+        - id
+        - name
+        - dueDay
+        - payersCount
+        - expectedTotal
+        - receivedTotal
+        - pendingTotal
+        - overdueTotal
+
+    CityDetail:
+      type: object
+      properties:
+        city:
+          $ref: "#/components/schemas/CityWithSummary"
+        referenceMonth:
+          type: string
+        payers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayerWithStatus"
+      required: [city, referenceMonth, payers]
+
+    CreateCityBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        dueDay:
+          type: integer
+          minimum: 1
+          maximum: 28
+        notes:
+          type: string
+          nullable: true
+      required: [name, dueDay]
+
+    UpdateCityBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        dueDay:
+          type: integer
+          minimum: 1
+          maximum: 28
+        notes:
+          type: string
+          nullable: true
+
+    Payer:
+      type: object
+      properties:
+        id:
+          type: integer
+        cityId:
+          type: integer
+        name:
+          type: string
+        monthlyAmount:
+          type: number
+        contact:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, cityId, name, monthlyAmount, createdAt]
+
+    PayerWithStatus:
+      type: object
+      properties:
+        id:
+          type: integer
+        cityId:
+          type: integer
+        name:
+          type: string
+        monthlyAmount:
+          type: number
+        contact:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [paid, pending, overdue]
+        paymentId:
+          type: integer
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        paidAmount:
+          type: number
+          nullable: true
+      required: [id, cityId, name, monthlyAmount, status]
+
+    CreatePayerBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        monthlyAmount:
+          type: number
+          minimum: 0
+        contact:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [name, monthlyAmount]
+
+    UpdatePayerBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        monthlyAmount:
+          type: number
+          minimum: 0
+        contact:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        payerId:
+          type: integer
+        referenceMonth:
+          type: string
+          description: Formato YYYY-MM
+        amount:
+          type: number
+        paidAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+      required: [id, payerId, referenceMonth, amount, paidAt]
+
+    RegisterPaymentBody:
+      type: object
+      properties:
+        referenceMonth:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+        amount:
+          type: number
+          minimum: 0
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [referenceMonth, amount]
+
+    DashboardSummary:
+      type: object
+      properties:
+        referenceMonth:
+          type: string
+        citiesCount:
+          type: integer
+        payersCount:
+          type: integer
+        expectedTotal:
+          type: number
+        receivedTotal:
+          type: number
+        pendingTotal:
+          type: number
+        overdueTotal:
+          type: number
+        paidPayers:
+          type: integer
+        pendingPayers:
+          type: integer
+        overduePayers:
+          type: integer
+      required:
+        - referenceMonth
+        - citiesCount
+        - payersCount
+        - expectedTotal
+        - receivedTotal
+        - pendingTotal
+        - overdueTotal
+        - paidPayers
+        - pendingPayers
+        - overduePayers
+
+    ActivityEntry:
+      type: object
+      properties:
+        paymentId:
+          type: integer
+        payerId:
+          type: integer
+        payerName:
+          type: string
+        cityId:
+          type: integer
+        cityName:
+          type: string
+        amount:
+          type: number
+        referenceMonth:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+      required:
+        - paymentId
+        - payerId
+        - payerName
+        - cityId
+        - cityName
+        - amount
+        - referenceMonth
+        - paidAt
