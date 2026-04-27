@@ -32,6 +32,7 @@ import {
   Users,
   CalendarDays,
   MessageCircle,
+  FileDown,
 } from "lucide-react";
 
 import { useMonth } from "@/hooks/use-month";
@@ -54,6 +55,7 @@ import {
   buildWhatsAppUrl,
   extractPhoneDigits,
 } from "@/lib/whatsapp";
+import { generateCityReport } from "@/lib/pdf-report";
 
 const STATUS_LABEL: Record<PayerWithStatus["status"], string> = {
   paid: "Pago",
@@ -320,6 +322,20 @@ export default function CityDetailPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                generateCityReport({ city, payers, referenceMonth });
+                toast.success("Relatório PDF gerado");
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
+              }
+            }}
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            Exportar PDF
+          </Button>
           <Button variant="outline" onClick={() => setEditCityOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar
