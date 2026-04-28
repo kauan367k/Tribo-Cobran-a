@@ -53,6 +53,7 @@ export interface PayerWithStatus {
   paymentId?: number | null;
   paidAt?: string | null;
   paidAmount?: number | null;
+  paymentNotes?: string | null;
 }
 
 export interface CityDetail {

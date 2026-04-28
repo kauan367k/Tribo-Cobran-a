@@ -18,4 +18,5 @@ export interface PayerWithStatus {
   paymentId?: number | null;
   paidAt?: Date | null;
   paidAmount?: number | null;
+  paymentNotes?: string | null;
 }

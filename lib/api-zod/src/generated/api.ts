@@ -123,6 +123,7 @@ export const GetCityResponse = zod.object({
       paymentId: zod.number().nullish(),
       paidAt: zod.coerce.date().nullish(),
       paidAmount: zod.number().nullish(),
+      paymentNotes: zod.string().nullish(),
     }),
   ),
 });

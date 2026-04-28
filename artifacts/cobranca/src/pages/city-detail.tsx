@@ -115,6 +115,7 @@ export default function CityDetailPage() {
   const [confirmDeletePayer, setConfirmDeletePayer] = useState<PayerWithStatus | null>(null);
   const [paymentFor, setPaymentFor] = useState<PayerWithStatus | null>(null);
   const [payerSearch, setPayerSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | PayerWithStatus["status"]>("all");
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetCityQueryKey(cityId) });
@@ -281,12 +282,23 @@ export default function CityDetailPage() {
     const normalize = (s: string) =>
       s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const q = normalize(payerSearch.trim());
-    if (!q) return payers;
     return payers.filter((p) => {
+      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      if (!q) return true;
       const haystack = `${p.name} ${p.contact ?? ""} ${p.notes ?? ""}`;
       return normalize(haystack).includes(q);
     });
-  }, [payers, payerSearch]);
+  }, [payers, payerSearch, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    return payers.reduce(
+      (acc, p) => {
+        acc[p.status] = (acc[p.status] ?? 0) + 1;
+        return acc;
+      },
+      { paid: 0, pending: 0, overdue: 0 } as Record<PayerWithStatus["status"], number>,
+    );
+  }, [payers]);
 
   if (cityQuery.isLoading) {
     return (
@@ -425,6 +437,35 @@ export default function CityDetailPage() {
             </Button>
           </div>
         </CardHeader>
+        {payers.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-6 pb-3">
+            {(
+              [
+                { key: "all", label: "Todos", count: payers.length },
+                { key: "paid", label: "Pagos", count: statusCounts.paid },
+                { key: "pending", label: "Pendentes", count: statusCounts.pending },
+                { key: "overdue", label: "Em atraso", count: statusCounts.overdue },
+              ] as const
+            ).map((opt) => {
+              const active = statusFilter === opt.key;
+              return (
+                <Button
+                  key={opt.key}
+                  type="button"
+                  size="sm"
+                  variant={active ? "default" : "outline"}
+                  onClick={() => setStatusFilter(opt.key)}
+                  data-testid={`filter-status-${opt.key}`}
+                >
+                  {opt.label}
+                  <span className={`ml-2 rounded-full px-2 text-xs ${active ? "bg-primary-foreground/20" : "bg-muted"}`}>
+                    {opt.count}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        )}
         <CardContent className="p-0">
           {payers.length === 0 ? (
             <div className="px-6 py-10 text-center text-sm text-muted-foreground">
@@ -432,7 +473,9 @@ export default function CityDetailPage() {
             </div>
           ) : filteredPayers.length === 0 ? (
             <div className="px-6 py-10 text-center text-sm text-muted-foreground">
-              Nenhum pagante encontrado para "{payerSearch}".
+              {payerSearch
+                ? `Nenhum pagante encontrado para "${payerSearch}".`
+                : "Nenhum pagante neste filtro."}
             </div>
           ) : (
             <ul className="divide-y">
@@ -466,6 +509,14 @@ export default function CityDetailPage() {
                       <div className="mt-1 flex items-start gap-1 text-xs text-muted-foreground">
                         <StickyNote className="mt-0.5 h-3 w-3 shrink-0" />
                         <span>{payer.notes}</span>
+                      </div>
+                    )}
+                    {payer.paymentNotes && (
+                      <div className="mt-1 flex items-start gap-1 text-xs text-emerald-700 dark:text-emerald-400">
+                        <StickyNote className="mt-0.5 h-3 w-3 shrink-0" />
+                        <span>
+                          <span className="font-medium">Obs. do pagamento:</span> {payer.paymentNotes}
+                        </span>
                       </div>
                     )}
                   </div>

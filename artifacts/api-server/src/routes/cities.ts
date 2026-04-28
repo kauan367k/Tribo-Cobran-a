@@ -168,6 +168,7 @@ router.get("/cities/:cityId", async (req, res, next) => {
         paymentId: payment?.id ?? null,
         paidAt: payment?.paidAt.toISOString() ?? null,
         paidAmount: payment ? Number(payment.amount) : null,
+        paymentNotes: payment?.notes ?? null,
       };
     });
 

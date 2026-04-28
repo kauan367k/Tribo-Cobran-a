@@ -454,6 +454,9 @@ components:
         paidAmount:
           type: number
           nullable: true
+        paymentNotes:
+          type: string
+          nullable: true
       required: [id, cityId, name, monthlyAmount, status]
 
     CreatePayerBody:
