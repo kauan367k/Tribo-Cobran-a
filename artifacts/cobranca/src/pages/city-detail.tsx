@@ -275,6 +275,19 @@ export default function CityDetailPage() {
     );
   };
 
+  const payers = cityQuery.data?.payers ?? [];
+
+  const filteredPayers = useMemo(() => {
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const q = normalize(payerSearch.trim());
+    if (!q) return payers;
+    return payers.filter((p) => {
+      const haystack = `${p.name} ${p.contact ?? ""} ${p.notes ?? ""}`;
+      return normalize(haystack).includes(q);
+    });
+  }, [payers, payerSearch]);
+
   if (cityQuery.isLoading) {
     return (
       <div className="space-y-6">
@@ -299,18 +312,7 @@ export default function CityDetailPage() {
     );
   }
 
-  const { city, payers } = cityQuery.data;
-
-  const normalize = (s: string) =>
-    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const filteredPayers = useMemo(() => {
-    const q = normalize(payerSearch.trim());
-    if (!q) return payers;
-    return payers.filter((p) => {
-      const haystack = `${p.name} ${p.contact ?? ""} ${p.notes ?? ""}`;
-      return normalize(haystack).includes(q);
-    });
-  }, [payers, payerSearch]);
+  const { city } = cityQuery.data;
 
   return (
     <div className="space-y-6">
