@@ -26,7 +26,9 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(cors({
+  origin: ["https://tribo-cobran-a.pages.dev", /https:\/\/.*\.tribo-cobran-a\.pages\.dev$/]
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
